@@ -3,72 +3,116 @@ ID: connorwu3
 LANG: PYTHON3
 TASK: milk2
 """
-import unittest
-from typing import Optional
-from functools import reduce
+# import unittest
 
-milking = [*map(lambda s: [*map(int, s.rstrip().split(" "))], open("milk2.in", "r").readlines())][1:]
-print(milking)
+milking = [*map(lambda s: [*map(int, s.rstrip().split(" "))], open("milk2.in", "r").readlines()[1:])]
 
-def diff(l: list[int]) -> int:
-    return reduce(lambda a, b: b-a, l) if l != None else 0
+"""
+milking is a list of intervals where farmers are milking cows
 
+if a farmer shift overlaps with another farmer's shift, that is just one combined shift
+"""
 def milk2(milking: list[list[int]]) -> str:
-    duration_min_1_cow_milked = [milking[0][0], milking[0][1]]
-    duration_time_no_cows_milked: Optional[list[int]] = None
+
+    # timestamps where at least 1 cow is being milked
+    schedule: list[list[int]] = [milking[0]]
     for i in range(1, len(milking)):
-        (start, end) = milking[i]
-        last_end = milking[i-1][1] 
 
-        is_farmers_milking_overlap = last_end > start
-        longest_continuous_milking_duration = diff(duration_min_1_cow_milked)
-        candidate_continuous_milking_duration = end - duration_min_1_cow_milked[0]
-        if is_farmers_milking_overlap and longest_continuous_milking_duration < candidate_continuous_milking_duration:
-            duration_min_1_cow_milked[1] = end
+        j = 0
+        while j < len(schedule):
+            overlapped = False
 
-        if duration_time_no_cows_milked == None:
-            if not is_farmers_milking_overlap and last_end < start:
-                duration_time_no_cows_milked = [last_end, start]
-        else:
-            longest_time_no_cows_milked = diff(duration_time_no_cows_milked)
-            candidate_time_no_cows_milked = start - duration_time_no_cows_milked[0]
-            if not is_farmers_milking_overlap and last_end < start and longest_time_no_cows_milked < candidate_time_no_cows_milked:
-                duration_time_no_cows_milked[0] = last_end
-                duration_time_no_cows_milked[1] = start
-    return f"{diff(duration_min_1_cow_milked)} {diff(duration_time_no_cows_milked)}"
-# print(duration_time_no_cows_milked)
+            # beginning of shift overlaps with other shift and makes new shift longer
+            if milking[i][0] < schedule[j][1] and milking[i][1] > schedule[j][1]:
+                # print(f"begin of farmers shift overlaps")
+                # print(f"before: {schedule[j]}")
+                schedule[j][1] = milking[i][1]
+                # print(f"after: {schedule[j]}\n")
+                overlapped = True
+            
+            # end of shift overlaps with some other shift and makes new shift longer
+            if milking[i][1] > schedule[j][0] and milking[i][0] < schedule[j][0]:
+                # print(f"end of farmers shift overlaps")
+                # print(f"before: {schedule[j]}")
+                schedule[j][0] = milking[i][0]
+                # print(f"after: {schedule[j]}\n")
+                overlapped = True
+
+            # if a new shift is overlapping with any shifts, combine (remove) them
+            k = 0
+            foundFirstOccurence = False
+            while k < len(schedule):
+                if milking[i][0] == schedule[k][0] and schedule[k][1] == milking[i][1]:
+                    if not foundFirstOccurence:
+                        foundFirstOccurence = True
+                    else:
+                        del schedule[k]
+                        k -= 1
+                        j -= 1
+                k += 1
+            in_schedule = False
+
+            for shift in schedule:
+                if milking[i][0] == shift[0] and milking[i][1] == shift[1]:
+                    in_schedule = True
+                    break
+            if not overlapped and not in_schedule:
+                schedule.append(milking[i])
+                break
+
+            j += 1
+
+    print(schedule)
+    longest_shift = max([l[1] - l[0] for l in schedule])
+    longest_break = max([schedule[i][0] - schedule[i-1][1] for i in range(1, len(schedule))]) if len(schedule) > 1 else 0
+    return f"{longest_shift} {longest_break}"
 
 output = milk2(milking)
 print(output)
 open("milk2.out", "w").write(output + "\n")
 
-class TestMilk2(unittest.TestCase): 
+def reconstruct_input(matrix: list[list[int]]) -> str:
+    return "\n".join([f"{matrix[i][0]} {matrix[i][1]}" for i in range(len(matrix))])
+
+# print(reconstruct_input([[300, 1000], [700, 1200], [1500, 2100]]))
+
+# class TestMilk2(unittest.TestCase): 
  
-    def test_run1(self): 
-        input = [[100, 200]]
-        expected = "100 0"
-        actual = milk2(input)
-        # error message in case if test case got failed 
-        message = f"expected {expected} but got {actual}, input: {input}\n"
-        # assertEqual() to check equality of first & second value 
-        self.assertEqual(expected, actual, message) 
+#     def test_run1(self): 
+#         input = [[100, 200]]
+#         expected = "100 0"
+#         actual = milk2(input)
+#         # error message in case if test case got failed 
+#         message = f"expected {expected} but got {actual}, input: {reconstruct_input(input)}\n"
+#         # assertEqual() to check equality of first & second value 
+#         self.assertEqual(expected, actual, message) 
 
-    def test_run2(self): 
-        input = [[300, 1000], [700, 1200], [1500, 2100]]
-        expected = "900 300"
-        actual = milk2(input)
-        # error message in case if test case got failed 
-        message = f"expected {expected} but got {actual}, input: {input}\n"
-        # assertEqual() to check equality of first & second value 
-        self.assertEqual(expected, actual, message) 
+#     def test_run2(self): 
+#         input = [[300, 1000], [700, 1200], [1500, 2100]]
+#         expected = "900 300"
+#         actual = milk2(input)
+#         # error message in case if test case got failed 
+#         message = f"expected {expected} but got {actual}, input: {reconstruct_input(input)}\n"
+#         # assertEqual() to check equality of first & second value 
+#         self.assertEqual(expected, actual, message) 
 
-    def test_run3(self): 
-        input = [[2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [16, 17], [18, 19], [1, 20]]
-        expected = "19 0"
-        actual = milk2(input)
-        # error message in case if test case got failed 
-        message = f"expected {expected} but got {actual}, input: {input}\n"
-        # assertEqual() to check equality of first & second value 
-        self.assertEqual(expected, actual, message) 
+#     def test_run3(self): 
+#         input = [[2, 3], [4, 5], [6, 7], [8, 9], [10, 11], [12, 13], [14, 15], [16, 17], [18, 19], [1, 20]]
+#         expected = "19 0"
+#         actual = milk2(input)
+#         # error message in case if test case got failed 
+#         message = f"expected {expected} but got {actual}, input: {reconstruct_input(input)}\n"
+#         # assertEqual() to check equality of first & second value 
+#         self.assertEqual(expected, actual, message) 
 
-unittest.main()
+#     def test_run6(self):
+#         input = [[100, 200], [200, 400], [400, 800], [800, 1600], [50, 100], [1700, 3200]]
+#         expected = "1550 100"
+#         actual = milk2(input)
+#         # error message in case if test case got failed 
+#         message = f"expected {expected} but got {actual}, input: {reconstruct_input(input)}\n"
+#         # assertEqual() to check equality of first & second value 
+#         self.assertEqual(expected, actual, message) 
+
+
+# unittest.main()
