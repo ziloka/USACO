@@ -20,7 +20,6 @@ def milk2(milking: list[list[int]]) -> str:
 
         j = 0
         while j < len(schedule):
-            overlapped = False
 
             # beginning of shift overlaps with other shift and makes new shift longer
             if milking[i][0] <= schedule[j][1] and milking[i][1] > schedule[j][1]:
@@ -28,7 +27,6 @@ def milk2(milking: list[list[int]]) -> str:
                 # print(f"before: {schedule[j]}")
                 schedule[j][1] = milking[i][1]
                 # print(f"after: {schedule[j]}\n")
-                overlapped = True
             
             # end of shift overlaps with some other shift and makes new shift longer
             if milking[i][1] >= schedule[j][0] and milking[i][0] < schedule[j][0]:
@@ -36,41 +34,59 @@ def milk2(milking: list[list[int]]) -> str:
                 # print(f"before: {schedule[j]}")
                 schedule[j][0] = milking[i][0]
                 # print(f"after: {schedule[j]}\n")
-                overlapped = True
 
-            # if a new shift is overlapping with any shifts, combine (remove) them
-            k = 0
-            foundFirstOccurence = False
-            while k < len(schedule):
-                if milking[i][0] == schedule[k][0] and schedule[k][1] == milking[i][1]:
-                    if not foundFirstOccurence:
-                        foundFirstOccurence = True
-                    else:
-                        del schedule[k]
-                        k -= 1
-                        j -= 1
-                k += 1
+            # k = 0
+            # foundFirstOccurence = False
+            # while k < len(schedule):
+            #     # if a new shift is overlapping with any shifts, combine (remove) them
+            #     if milking[i][0] == schedule[k][0] and schedule[k][1] == milking[i][1]:
+            #         if not foundFirstOccurence:
+            #             foundFirstOccurence = True
+            #         else:
+            #             del schedule[k]
+            #             k -= 1
+            #             j -= 1
+            #     k += 1
             in_schedule = False
 
             for shift in schedule:
                 if milking[i][0] == shift[0] and milking[i][1] == shift[1]:
                     in_schedule = True
                     break
-            if not overlapped and not in_schedule:
+            if not in_schedule:
                 schedule.append(milking[i])
                 break
-
             j += 1
 
     schedule.sort(key=lambda e: e[0]) 
+
+    # remove shifts that overlap
+    # i = 0
+    # while i < len(schedule):
+    #     j = 0
+    #     while j < len(schedule):
+    #         if (schedule[i][0] <= schedule[j][0] and schedule[i][1] > schedule[j][1]) or (schedule[i][1] >= schedule[j][0] and schedule[i][0] < schedule[j][0]):
+    #             del schedule[j]
+    #             i -= 1
+    #             j -= 1
+    #         j+=1
+    #     i+=1
+
     print(schedule)
+    # print([l[1] - l[0] for l in schedule])
     longest_shift = max([l[1] - l[0] for l in schedule])
     longest_break = max([schedule[i][0] - schedule[i-1][1] for i in range(1, len(schedule))]) if len(schedule) > 1 else 0
     return f"{longest_shift} {longest_break}"
 
-output = milk2(milking)
-print(output)
-open("milk2.out", "w").write(output + "\n")
+print(milk2([
+    [2, 10],
+    [5, 12],
+    [11, 20]
+]))
+
+# output = milk2(milking)
+# print(output)
+# open("milk2.out", "w").write(output + "\n")
 
 def reconstruct_input(matrix: list[list[int]]) -> str:
     return "\n".join([f"{matrix[i][0]} {matrix[i][1]}" for i in range(len(matrix))])
