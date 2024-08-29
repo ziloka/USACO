@@ -3,10 +3,24 @@ ID: connorwu3
 LANG: PYTHON3
 TASK: milk2
 """
+import time
 import unittest
 
 milking = [*map(lambda s: [*map(int, s.rstrip().split(" "))], open("milk2.in", "r").readlines()[1:])]
 
+def binary_search_find_index(arr, low, high, x):
+
+    # Check base case
+    if high >= low:
+        mid = low + (high - low) // 2
+        if arr[mid] == x:
+            return mid
+        elif arr[mid] > x:
+            return binary_search_find_index(arr, low, mid-1, x)
+        else:
+            return binary_search_find_index(arr, mid + 1, high, x)
+    else:
+        return -1
 """
 milking is a list of intervals where farmers are milking cows
 
@@ -15,81 +29,99 @@ if a farmer shift overlaps with another farmer's shift, that is just one combine
 def milk2(milking: list[list[int]]) -> str:
 
     # timestamps where at least 1 cow is being milked
-    schedule: list[list[int]] = [milking[0]]
+    schedule: list[tuple[int, int]] = [(milking[0][0], milking[0][1])]
     for i in range(1, len(milking)):
 
         j = 0
-        while j < len(schedule):
+        while 0 <= j and j < len(schedule):
 
             # beginning of shift overlaps with other shift and makes new shift longer
-            if milking[i][0] <= schedule[j][1] and milking[i][1] > schedule[j][1]:
-                # print(f"begin of farmers shift overlaps")
-                # print(f"before: {schedule[j]}")
-                schedule[j][1] = milking[i][1]
-                # print(f"after: {schedule[j]}\n")
+            beginning_overlaps = milking[i][0] <= schedule[j][1] and milking[i][1] > schedule[j][1]
+            end_overlaps = milking[i][1] >= schedule[j][0] and milking[i][0] < schedule[j][0]
+
+            if beginning_overlaps and end_overlaps:
+                longer_shift = milking[i]
+                k = 0
+                while k < len(schedule):
+                    if longer_shift[0] < schedule[k][0] and schedule[k][1] < longer_shift[1]:
+                        del schedule[k]
+                        k -= 1
+                    k+=1
+            else: 
+                if beginning_overlaps:
+                    # print(f"begin of farmers shift overlaps")
+                    # print(f"before: {schedule}, j={j}, i={i}")
+                    schedule.insert(j+1, (schedule[j][0], milking[i][1]))
+                    # print(f"before deleting: {schedule}")
+                    del schedule[j]
+                    if j - 1 < len(schedule):
+                        j -= 1
+                    # i_index = i if i < j + 1 else 
+                    if i < len(schedule):
+                        del schedule[i]
+                    # print(f"after deleting: {schedule}\n")
+                
+                # end of shift overlaps with some other shift and makes new shift longer
+                if end_overlaps:
+                    # print(f"end of farmers shift overlaps")
+                    # print(f"before: {schedule}, {j}, i={i}")
+                    schedule.insert(j+1, (milking[i][0], schedule[j][1]))
+                    # print(f"before deleting: {schedule}")
+                    del schedule[j]
+                    if j - 1 < len(schedule):    
+                        j -= 1
+                    if i < len(schedule):
+                        del schedule[i]
             
-            # end of shift overlaps with some other shift and makes new shift longer
-            if milking[i][1] >= schedule[j][0] and milking[i][0] < schedule[j][0]:
-                # print(f"end of farmers shift overlaps")
-                # print(f"before: {schedule[j]}")
-                schedule[j][0] = milking[i][0]
-                # print(f"after: {schedule[j]}\n")
-
+            if tuple(milking[i]) not in schedule:
+                schedule.append((milking[i][0], milking[i][1]))
+            
             # k = 0
-            # foundFirstOccurence = False
             # while k < len(schedule):
-            #     # if a new shift is overlapping with any shifts, combine (remove) them
-            #     if milking[i][0] == schedule[k][0] and schedule[k][1] == milking[i][1]:
-            #         if not foundFirstOccurence:
-            #             foundFirstOccurence = True
-            #         else:
+            #     m = 0
+            #     while m < len(schedule):
+            #         if beginning_overlaps and schedule[k][0] < schedule[m][0] and schedule[k][1] < schedule[m][1]:
+            #             schedule.insert(m, (schedule[k][0], schedule[m][1]))
+            #             del schedule[m]
             #             del schedule[k]
-            #             k -= 1
-            #             j -= 1
+            #             if m - 1 >= 0:
+            #                 m -= 1
+            #             if k - 1 >= 0:
+            #                 k -= 1
+            #             if j - 1 >= 0:
+            #                 j -= 1
+            #         m += 1
             #     k += 1
-            in_schedule = False
 
-            for shift in schedule:
-                if milking[i][0] == shift[0] and milking[i][1] == shift[1]:
-                    in_schedule = True
-                    break
-            if not in_schedule:
-                schedule.append(milking[i])
-                break
             j += 1
 
-    schedule.sort(key=lambda e: e[0]) 
-
-    # remove shifts that overlap
-    # i = 0
-    # while i < len(schedule):
-    #     j = 0
-    #     while j < len(schedule):
-    #         if (schedule[i][0] <= schedule[j][0] and schedule[i][1] > schedule[j][1]) or (schedule[i][1] >= schedule[j][0] and schedule[i][0] < schedule[j][0]):
-    #             del schedule[j]
-    #             i -= 1
-    #             j -= 1
-    #         j+=1
-    #     i+=1
-
+    # schedule.sort(key=lambda e: e[0])
     print(schedule)
     # print([l[1] - l[0] for l in schedule])
     longest_shift = max([l[1] - l[0] for l in schedule])
     longest_break = max([schedule[i][0] - schedule[i-1][1] for i in range(1, len(schedule))]) if len(schedule) > 1 else 0
     return f"{longest_shift} {longest_break}"
 
-print(milk2([
-    [2, 10],
-    [5, 12],
-    [11, 20]
-]))
+# print(milk2([
+#     [2, 4],
+#     [5, 12],
+#     [11, 20],
+#     [21, 23]
+# ]))
 
+# start = time.time()
 # output = milk2(milking)
 # print(output)
+# print(f"took {time.time() - start: .2f} seconds")
 # open("milk2.out", "w").write(output + "\n")
 
-def reconstruct_input(matrix: list[list[int]]) -> str:
-    return "\n".join([f"{matrix[i][0]} {matrix[i][1]}" for i in range(len(matrix))])
+output = milk2([[26022, 26065], [17435, 17463], [17766, 17811], [6543, 6575], [19436, 19516], [17161, 17174], [11704, 11736], [11040, 11088], [8106, 8142], [19810, 19855], [9464, 9473], [13056, 13082], [20364, 20421], [19954, 19959], [2697, 2765], [3465, 3548], [9267, 9282], [26107, 26138], [20459, 20550], [14267, 14358], [14968, 15068], [12099, 12156], [21594, 21616], [7965, 8023], [11094, 11171], [453, 480], [15105, 15113], [26944, 27006], [11120, 11126], [21755, 21819], [24531, 24628], [26838, 26900], [18740, 18760], [14038, 14044], [24321, 24322], [1917, 1971], [14251, 14321], [14145, 14146], [8207, 8225], [18448, 18454], [8917, 8949], [1116, 1180], [29584, 29606]])
+print(output)
+
+# def reconstruct_input(matrix: list[list[int]]) -> str:
+#     return str(len(matrix)) + "\n" + "\n".join([f"{matrix[i][0]} {matrix[i][1]}" for i in range(len(matrix))])
+
+# # print(reconstruct_input([[300, 1000], [700, 1200], [1500, 2100]]))
 
 # class TestMilk2(unittest.TestCase): 
  
